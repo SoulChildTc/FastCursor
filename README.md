@@ -19,8 +19,8 @@
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/yourusername/cursor-account-register.git
-cd cursor-account-register
+git clone https://github.com/SoulChildTc/FastCursor.git
+cd FastCursor
 ```
 
 2. 安装依赖：
@@ -39,38 +39,6 @@ cp .env.example .env
 在项目根目录下运行以下命令来注册账号：
 
 ```bash
-python -m src.main your_email@example.com
+python app.py
 ```
 
-或者：
-
-```bash
-cd src
-python main.py your_email@example.com
-```
-
-## 配置说明
-
-在 `.env` 文件中配置以下信息：
-
-- 邮件服务器配置（IMAP/POP3）
-- 临时邮箱配置（如果使用）
-- 邮件协议选择
-
-## 注意事项
-
-- 请确保你的邮箱服务器允许 IMAP/POP3 访问
-- 使用临时邮箱时需要注意服务的可用性
-- 不要将你的邮箱密码提交到版本控制系统
-
-## 贡献指南
-
-欢迎提交 Pull Request 来改进这个项目。在提交之前，请确保：
-
-1. 代码符合 PEP 8 规范
-2. 添加了适当的测试
-3. 更新了文档
-
-## 许可证
-
-MIT License 
