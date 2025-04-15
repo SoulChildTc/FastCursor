@@ -1,0 +1,198 @@
+from enum import Enum
+from typing import Optional
+from colorama import Fore, Style
+import time
+import random
+from browser_utils import BrowserManager
+from get_email_code import EmailVerificationHandler
+from config import Config
+from datetime import datetime
+from logger import logging
+import os
+
+class VerificationStatus(Enum):
+    """验证状态枚举"""
+
+    PASSWORD_PAGE = "@name=password"
+    CAPTCHA_PAGE = "@data-index=0"
+    ACCOUNT_SETTINGS = "Account Settings"
+
+
+class TurnstileError(Exception):
+    """Turnstile 验证相关异常"""
+
+    pass
+
+def check_verification_success(tab) -> Optional[VerificationStatus]:
+    """
+    检查验证是否成功
+
+    Returns:
+        VerificationStatus: 验证成功时返回对应状态，失败返回 None
+    """
+    for status in VerificationStatus:
+        if tab.ele(status.value):
+            save_screenshot(tab, "success")
+            logging.info(f"验证成功 - 已到达{status.name}页面")
+            return status
+    return None
+
+
+def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2)) -> bool:
+    """
+    处理 Turnstile 验证
+
+    Args:
+        tab: 浏览器标签页对象
+        max_retries: 最大重试次数
+        retry_interval: 重试间隔时间范围(最小值, 最大值)
+
+    Returns:
+        bool: 验证是否成功
+
+    Raises:
+        TurnstileError: 验证过程中出现异常
+    """
+    logging.info("正在检测 Turnstile 验证...")
+    # save_screenshot(tab, "start")
+
+    retry_count = 0
+
+    try:
+        while retry_count < max_retries:
+            retry_count += 1
+            logging.debug(f"第 {retry_count} 次尝试验证")
+
+            try:
+                save_screenshot(tab, "start")
+                # 定位验证框元素
+                challenge_check = (
+                    tab.ele("@id=cf-turnstile", timeout=2)
+                    .child()
+                    .shadow_root.ele("tag:iframe")
+                    .ele("tag:body")
+                    .sr("tag:input")
+                )
+                if challenge_check:
+                    logging.info("检测到 Turnstile 验证框，开始处理...")
+                    # 随机延时后点击验证
+                    time.sleep(random.uniform(1, 3))
+                    challenge_check.click()
+                    time.sleep(2)
+
+                    保存验证后的截图
+                    save_screenshot(tab, "clicked")
+
+                    # 检查验证结果
+                    if check_verification_success(tab):
+                        logging.info("Turnstile 验证通过")
+                        # save_screenshot(tab, "success")
+                        return True
+
+            except Exception as e:
+                logging.debug(f"当前尝试未成功: {str(e)}")
+
+            # 检查是否已经验证成功
+            if check_verification_success(tab):
+                return True
+            # 随机延时后继续下一次尝试
+            time.sleep(random.uniform(*retry_interval))
+
+        # 超出最大重试次数
+        logging.error(f"验证失败 - 已达到最大重试次数 {max_retries}")
+      
+        save_screenshot(tab, "failed")
+        return False
+
+    except Exception as e:
+        error_msg = f"Turnstile 验证过程发生异常: {str(e)}"
+        logging.error(error_msg)
+        save_screenshot(tab, "error")
+        raise TurnstileError(error_msg)
+
+
+class EmailGenerator:
+    def __init__(
+        self,
+        password="".join(
+            random.choices(
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*",
+                k=12,
+            )
+        ),
+    ):
+        configInstance = Config()
+        configInstance.print_config()
+        self.domain = configInstance.get_domain()
+        self.names = self.load_names()
+        self.default_password = password
+        self.default_first_name = self.generate_random_name()
+        self.default_last_name = self.generate_random_name()
+
+    def load_names(self):
+        with open("names-dataset.txt", "r") as file:
+            return file.read().split()
+
+    def generate_random_name(self):
+        """生成随机用户名"""
+        return random.choice(self.names)
+
+    def generate_email(self, length=4):
+        """生成随机邮箱地址"""
+        length = random.randint(0, length)  # 生成0到length之间的随机整数
+        timestamp = str(int(time.time()))[-length:]  # 使用时间戳后length位
+        return f"{self.default_first_name}{timestamp}@{self.domain}"  #
+
+    def get_account_info(self):
+        """获取完整的账号信息"""
+        return {
+            "email": self.generate_email(),
+            "password": self.default_password,
+            "first_name": self.default_first_name,
+            "last_name": self.default_last_name,
+        }
+
+
+def get_user_agent():
+    """获取user_agent"""
+    try:
+        # 使用JavaScript获取user agent
+        browser_manager = BrowserManager()
+        browser = browser_manager.init_browser()
+        user_agent = browser.latest_tab.run_js("return navigator.userAgent")
+        browser_manager.quit()
+        return user_agent
+    except Exception as e:
+        logging.error(f"获取user agent失败: {str(e)}")
+        return None
+
+
+def save_screenshot(tab, stage: str, timestamp: bool = True) -> None:
+    """
+    保存页面截图
+
+    Args:
+        tab: 浏览器标签页对象
+        stage: 截图阶段标识
+        timestamp: 是否添加时间戳
+    """
+    try:
+        # 创建 screenshots 目录
+        screenshot_dir = "screenshots"
+        if not os.path.exists(screenshot_dir):
+            os.makedirs(screenshot_dir)
+
+        # 生成文件名
+        if timestamp:
+            filename = f"turnstile_{stage}_{int(time.time())}.png"
+        else:
+            filename = f"turnstile_{stage}.png"
+
+        filepath = os.path.join(screenshot_dir, filename)
+
+        # 保存截图
+        tab.get_screenshot(filepath)
+        logging.debug(f"截图已保存: {filepath}")
+    except Exception as e:
+        logging.warning(f"截图保存失败: {str(e)}")
+

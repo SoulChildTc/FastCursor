@@ -1,0 +1,424 @@
+/* 全局样式 - Flat Remix 风格 */
+:root {
+    --primary-color: #5352ed;
+    --secondary-color: #6c757d;
+    --success-color: #2ed573;
+    --danger-color: #ff4757;
+    --warning-color: #ffa502;
+    --info-color: #70a1ff;
+    --light-color: #f8f9fa;
+    --dark-color: #2f3542;
+    --bg-color: #f1f2f6;
+    --card-bg: #ffffff;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 25px 0 rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: var(--bg-color);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #2f3542;
+}
+
+/* 容器样式 */
+.container {
+    max-width: 1200px;
+    padding: 20px;
+}
+
+/* 卡片样式 */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: none;
+    transition: var(--transition);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: var(--card-bg);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-weight: 700;
+    color: var(--dark-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* 搜索和筛选组件样式 */
+.input-group {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.input-group-text {
+    background-color: var(--card-bg);
+    border: none;
+    color: var(--primary-color);
+    padding-left: 1.25rem;
+}
+
+.input-group .form-control {
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+}
+
+.input-group .form-control:focus {
+    box-shadow: none;
+}
+
+.form-select {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+}
+
+.form-select:focus {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: none;
+}
+
+/* 统计卡片样式 */
+.stats-cards {
+    margin-bottom: 30px;
+}
+
+.stats-card {
+    height: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.stats-card .card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-card .card-title {
+    color: var(--secondary-color);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-card .stats-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0 15px;
+    color: var(--dark-color);
+}
+
+.stats-card i {
+    font-size: 2.5rem;
+    opacity: 0.9;
+}
+
+.stats-card.total {
+    background: linear-gradient(45deg, rgba(83, 82, 237, 0.1), rgba(83, 82, 237, 0.05));
+}
+
+.stats-card.total i {
+    color: var(--primary-color);
+}
+
+.stats-card.available {
+    background: linear-gradient(45deg, rgba(46, 213, 115, 0.1), rgba(46, 213, 115, 0.05));
+}
+
+.stats-card.available i {
+    color: var(--success-color);
+}
+
+.stats-card.allocated {
+    background: linear-gradient(45deg, rgba(255, 165, 2, 0.1), rgba(255, 165, 2, 0.05));
+}
+
+.stats-card.allocated i {
+    color: var(--warning-color);
+}
+
+.stats-card.invalid {
+    background: linear-gradient(45deg, rgba(255, 71, 87, 0.1), rgba(255, 71, 87, 0.05));
+}
+
+.stats-card.invalid i {
+    color: var(--danger-color);
+}
+
+/* 表格样式 */
+.table-responsive {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--dark-color);
+    border-bottom-width: 1px;
+    padding: 1rem 1.5rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: 5px;
+    transition: var(--transition);
+}
+
+.table .btn-icon:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.table .btn-icon i {
+    font-size: 1.2rem;
+}
+
+/* 状态标签样式 */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-available {
+    background-color: rgba(46, 213, 115, 0.15);
+    color: var(--success-color);
+}
+
+.status-allocated {
+    background-color: rgba(255, 165, 2, 0.15);
+    color: var(--warning-color);
+}
+
+.status-invalid {
+    background-color: rgba(255, 71, 87, 0.15);
+    color: var(--danger-color);
+}
+
+/* 模态框样式 */
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: none;
+    overflow: hidden;
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-header .modal-title {
+    font-weight: 700;
+    color: var(--dark-color);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.25rem 1.5rem;
+}
+
+/* 按钮样式 */
+.btn {
+    border-radius: var(--border-radius);
+    padding: 0.6rem 1.25rem;
+    font-weight: 600;
+    transition: var(--transition);
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #4240db;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(83, 82, 237, 0.3);
+}
+
+.btn-secondary {
+    background-color: #dfe4ea;
+    color: var(--dark-color);
+}
+
+.btn-secondary:hover {
+    background-color: #ced6e0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 调度器卡片样式 */
+.card-header.bg-primary {
+    background: linear-gradient(45deg, var(--primary-color), #706fd3) !important;
+    color: white;
+    border-bottom: none;
+}
+
+.card-header.bg-primary h5 {
+    color: white;
+    font-weight: 600;
+}
+
+/* 表单控件样式 */
+.form-control {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+}
+
+.form-control:focus {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+/* 倒计时样式 */
+#time-left {
+    font-family: 'SF Mono', 'Courier New', Courier, monospace;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+#time-left.text-danger {
+    background-color: rgba(255, 71, 87, 0.05);
+    font-weight: 700;
+}
+
+/* 调度器卡片增强样式 */
+.badge.rounded-pill {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-light.text-primary {
+    box-shadow: 0 2px 8px rgba(83, 82, 237, 0.2);
+}
+
+/* 注册按钮增强样式 */
+#trigger-registration {
+    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+    position: relative;
+    overflow: hidden;
+}
+
+#trigger-registration:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(83, 82, 237, 0.3);
+}
+
+#trigger-registration:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(83, 82, 237, 0.2);
+}
+
+#trigger-registration::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+/* Toast 提示样式 */
+.toast-container {
+    z-index: 1060;
+}
+
+.toast {
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: none;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .stats-card .stats-number {
+        font-size: 2rem;
+    }
+    
+    .stats-card i {
+        font-size: 2rem;
+    }
+    
+    .card-header .row {
+        margin-top: 10px;
+    }
+    
+    .card-header .col-md-4 {
+        margin-top: 10px;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem 1rem;
+    }
+}
+
