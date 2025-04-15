@@ -42,3 +42,8 @@ cp .env.example .env
 python app.py
 ```
 
+## mac 报错解决
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/Cursor\ Helper.app/
+```
