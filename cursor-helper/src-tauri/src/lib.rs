@@ -78,7 +78,10 @@ async fn reset_cursor_machine_id_command(restart: bool) -> Result<ApiResponse, S
 // 从远程服务器获取账号信息并更新
 #[tauri::command]
 async fn change_account_command(state: State<'_, AppState>, api_url: String) -> Result<ApiResponse, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))  // 设置 2 秒超时
+        .build()
+        .map_err(|e| e.to_string())?;
     let url = format!("{}/api/account", api_url);
     
     match client.get(&url).send().await {

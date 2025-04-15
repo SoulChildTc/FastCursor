@@ -45,7 +45,7 @@ const changeAccount = async () => {
       apiUrl: apiUrl.value
     });
     // 如果 response.message 包含 error: Connection refused 则显示错误
-    if (response.message.includes('error: Connection refused')) {
+    if (response.message.includes('error: Connection refused') || response.message.includes('error sending request')) {
       showMessage('连接失败，请检查网络连接', false);
     } else {
       showMessage(response.message, response.success);

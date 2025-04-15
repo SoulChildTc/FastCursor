@@ -45,7 +45,7 @@
       },
       "resources": [],
       "shortDescription": "",
-      "targets": ["app", "dmg"],
+      "targets": ["app", "dmg", "msi"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
