@@ -149,7 +149,7 @@ class AccountManager:
             if not result:
                 return None
             
-            # self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
+            self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
             return result
     
     def get_available_account(self) -> Optional[Dict]:

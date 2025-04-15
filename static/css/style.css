@@ -200,34 +200,95 @@ body {
     border-bottom: none;
 }
 
+/* 表格操作按钮容器 */
+.table td .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .table .btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    margin-right: 5px;
-    transition: var(--transition);
-}
-
-.table .btn-icon:hover {
-    background-color: var(--primary-color);
-    color: white;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: transparent;
 }
 
 .table .btn-icon i {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+}
+
+.table .btn-icon:hover i {
+    transform: scale(1.1);
+}
+
+.table .btn-icon.view-account {
+    color: #4C6FFF;
+    border: 1px solid rgba(76, 111, 255, 0.3);
+}
+
+.table .btn-icon.view-account:hover {
+    background-color: #4C6FFF;
+    border-color: #4C6FFF;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 111, 255, 0.2);
+}
+
+.table .btn-icon.switch-account {
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.table .btn-icon.switch-account:hover {
+    background-color: #10B981;
+    border-color: #10B981;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.table .btn-icon.disabled {
+    background-color: transparent;
+    border: 1px solid rgba(203, 213, 225, 0.5);
+    color: #94A3B8;
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.table .btn-icon.disabled:hover {
+    background-color: transparent;
+    border: 1px solid rgba(203, 213, 225, 0.5);
+    color: #94A3B8;
+    box-shadow: none;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #6c757d;
+}
+
+/* 表格列宽度控制 */
+.table th.status-column,
+.table td.status-column {
+    min-width: 120px;
+    width: 120px;
 }
 
 /* 状态标签样式 */
 .status-badge {
-    padding: 6px 12px;
+    padding: 6px 16px;
     border-radius: 50px;
     font-size: 0.8rem;
     font-weight: 600;
     display: inline-block;
+    width: 100px;
+    text-align: center;
 }
 
 .status-available {
@@ -289,9 +350,10 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: #4240db;
+    background-color: #4240db !important;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(83, 82, 237, 0.3);
+    color: white !important;
 }
 
 .btn-secondary {
@@ -420,5 +482,93 @@ body {
     .table th, .table td {
         padding: 0.75rem 1rem;
     }
+}
+
+/* 账号切换确认模态框样式 */
+.avatar-lg {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    border-radius: 50%;
+    margin: 0 auto;
+}
+
+.avatar-lg i {
+    color: var(--primary-color);
+}
+
+#switch-account-modal .modal-content {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+#switch-account-modal .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+}
+
+#switch-account-modal .modal-body {
+    padding: 2rem;
+}
+
+#switch-account-modal .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+}
+
+#switch-account-modal .btn {
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+#switch-account-modal .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+#switch-account-modal .btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+}
+
+#switch-account-modal .btn-light {
+    background-color: #f8f9fa;
+    border-color: #f8f9fa;
+}
+
+#switch-account-modal .btn-light:hover {
+    background-color: #e9ecef;
+    border-color: #e9ecef;
+}
+
+#switch-account-modal .alert {
+    border-radius: 8px;
+    border: none;
+    background-color: rgba(var(--info-rgb), 0.1);
+    color: var(--info-color);
+    text-align: center;
+}
+
+#switch-account-modal .alert i {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+#switch-account-modal .alert span {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#switch-account-modal #switch-account-email {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    font-weight: 500;
 }
 

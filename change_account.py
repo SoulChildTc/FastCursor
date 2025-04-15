@@ -32,9 +32,7 @@ def change_cursor_account(account_id=None):
             account_data = account_manager.get_account_by_id(account_id)
         else:
             account_data = account_manager.get_available_account()
-            account_manager.mark_account_status(account_data['email'], AccountStatus.AVAILABLE)
-        logging.info(f"获取成功: {account_data}")
-        return
+
         email = account_data.get("email")
         token = account_data.get("token")
         

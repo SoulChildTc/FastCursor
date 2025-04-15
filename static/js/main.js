@@ -334,15 +334,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                     <span class="password-mask">••••••••</span>
                 </td>
-                <td>
+                <td class="status-column">
                     <span class="status-badge ${statusClass}">${getStatusText(account.status)}</span>
                 </td>
                 <td>${registerTime}</td>
                 <td>${lastAllocatedTime}</td>
                 <td>
-                    <button class="btn btn-icon btn-outline-primary view-account" title="查看详情">
-                        <i class='bx bx-detail'></i>
-                    </button>
+                    <div class="action-buttons">
+                        <button class="btn btn-icon btn-outline-primary view-account" title="查看详情">
+                            <i class='bx bx-detail'></i>
+                        </button>
+                        <button class="btn btn-icon btn-outline-success switch-account ${account.status !== 'available' ? 'disabled' : ''}" 
+                                title="更换账号" ${account.status !== 'available' ? 'disabled' : ''}>
+                            <i class='bx bx-transfer'></i>
+                        </button>
+                    </div>
                 </td>
             `;
             
@@ -354,6 +360,16 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', function() {
                 const accountData = JSON.parse(this.closest('tr').getAttribute('data-account'));
                 showAccountDetails(accountData);
+            });
+        });
+
+        // 添加更换账号事件
+        document.querySelectorAll('.switch-account').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!this.disabled) {
+                    const accountData = JSON.parse(this.closest('tr').getAttribute('data-account'));
+                    switchCursorAccount(accountData);
+                }
             });
         });
     }
@@ -752,4 +768,129 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始加载统计信息
     updateStats();
+
+    /**
+     * 更换 Cursor 账号
+     * @param {Object} account 账号数据
+     */
+    function switchCursorAccount(account) {
+        // 检查是否已存在模态框，如果存在则移除
+        let existingModal = document.getElementById('switch-account-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // 创建模态框 HTML
+        const modalHtml = `
+            <div class="modal fade" id="switch-account-modal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class='bx bx-transfer text-primary me-2'></i>确认更换账号
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center mb-4">
+                                <div class="avatar-lg mx-auto mb-3">
+                                    <i class='bx bx-user-circle' style="font-size: 4rem; color: var(--primary-color);"></i>
+                                </div>
+                                <h5 class="mb-3">确定要更换到以下账号吗？</h5>
+                                <p class="text-muted" id="switch-account-email">${account.email}</p>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class='bx bx-info-circle me-2'></i>
+                                <span>更换账号后会自动重启 cursor</span>
+                                <br/>
+                                <span>如重启失败请手动重启</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" id="confirm-switch-account">
+                                <i class='bx bx-check me-1'></i>确认更换
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 将模态框添加到 body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 获取新创建的模态框元素
+        const modalEl = document.getElementById('switch-account-modal');
+        
+        try {
+            // 创建模态框实例
+            const modal = new bootstrap.Modal(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            
+            // 获取确认按钮
+            const confirmButton = document.getElementById('confirm-switch-account');
+            if (!confirmButton) {
+                console.error('找不到确认按钮');
+                return;
+            }
+
+            const originalHtml = confirmButton.innerHTML;
+            
+            // 定义确认处理函数
+            const handleConfirm = () => {
+                confirmButton.disabled = true;
+                confirmButton.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>正在更换...';
+
+                fetch('/api/account/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ account_id: account.id })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        modal.hide();
+                        showToast('成功', '账号更换成功', 'success');
+                        // 刷新账号列表和统计信息
+                        loadAccounts();
+                        updateStats();
+                    } else {
+                        showToast('错误', data.message || '更换账号失败', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('更换账号失败:', error);
+                    showToast('错误', '更换账号失败，请查看控制台日志', 'danger');
+                })
+                .finally(() => {
+                    confirmButton.disabled = false;
+                    confirmButton.innerHTML = originalHtml;
+                });
+            };
+
+            // 添加确认按钮事件监听器
+            confirmButton.addEventListener('click', handleConfirm);
+            
+            // 模态框隐藏后清理
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                modal.dispose();
+                modalEl.remove();
+            });
+            
+            // 显示模态框
+            modal.show();
+            
+        } catch (error) {
+            console.error('初始化模态框失败:', error);
+            // 降级为使用原生 confirm
+            if (confirm(`确定要更换到账号 ${account.email} 吗？`)) {
+                handleConfirm();
+            }
+        }
+    }
 });

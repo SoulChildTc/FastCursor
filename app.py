@@ -5,6 +5,10 @@ from scheduler import AccountScheduler
 import threading
 from config import Config
 from change_account import change_cursor_account
+import os
+import json
+import shutil
+from datetime import datetime
 
 app = Flask(__name__)
 account_manager = AccountManager()
@@ -165,8 +169,8 @@ def batch_mark_invalid():
             'message': str(e)
         }), 500
 
-@app.route('/api/change-account', methods=['POST'])
-def handle_change_account():
+@app.route('/api/account/switch', methods=['POST'])
+def account_switch():
     """更换账号
     
     请求体参数:
