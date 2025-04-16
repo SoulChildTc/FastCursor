@@ -1,4 +1,5 @@
 import pymysql
+import sqlite3
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List, Dict
@@ -14,48 +15,29 @@ class AccountStatus(Enum):
     ALLOCATED = 'allocated'  # 已分配
     INVALID = 'invalid'      # 无效
 
-class AccountManager:
-    def __init__(self):
-        """初始化账号管理器"""
-        load_dotenv()
-        self.db_name = os.getenv('MYSQL_DATABASE', 'cursor_accounts')
-        # 初始配置不包含数据库名，用于创建数据库
-        self.db_config = {
-            'host': os.getenv('MYSQL_HOST', 'localhost'),
-            'port': int(os.getenv('MYSQL_PORT', 3306)),
-            'user': os.getenv('MYSQL_USER', 'root'),
-            'password': os.getenv('MYSQL_PASSWORD', ''),
-            'charset': 'utf8mb4'
-        }
+class _MySQLAdapter:
+    def __init__(self, db_config, db_name):
+        self.db_config = db_config.copy()
+        self.db_name = db_name
         self.init_db()
-        # 添加数据库名到配置中
         self.db_config['database'] = self.db_name
-    
     def get_connection(self):
-        """获取数据库连接"""
         return pymysql.connect(**self.db_config)
-    
     def init_db(self):
-        """初始化数据库和表结构"""
-        # 创建数据库连接（不指定数据库）
-        conn = pymysql.connect(**self.db_config)
+        config = self.db_config.copy()
+        config.pop('database', None)
+        conn = pymysql.connect(**config)
         try:
             with conn.cursor() as cursor:
-                # 检查数据库是否存在
                 cursor.execute("SHOW DATABASES LIKE %s", (self.db_name,))
                 if not cursor.fetchone():
                     logging.info(f"数据库 {self.db_name} 不存在，开始创建")
-                    # 创建数据库
                     cursor.execute(
                         f"CREATE DATABASE {self.db_name} "
                         "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
                     )
                     logging.info(f"数据库 {self.db_name} 创建成功")
-                
-                # 选择数据库
                 cursor.execute(f"USE {self.db_name}")
-                
-                # 创建表
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS accounts (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,7 +59,76 @@ class AccountManager:
             raise
         finally:
             conn.close()
-    
+    def paramstyle(self):
+        return '%s'
+    def dict_cursor(self):
+        return pymysql.cursors.DictCursor
+    def integrity_error(self):
+        return pymysql.IntegrityError
+
+class _SQLiteAdapter:
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.init_db()
+    def get_connection(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+    def init_db(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    first_name TEXT,
+                    last_name TEXT,
+                    status TEXT NOT NULL,
+                    register_time TEXT NOT NULL,
+                    last_allocated_time TEXT,
+                    metadata TEXT,
+                    token TEXT,
+                    created_at TEXT DEFAULT (datetime('now'))
+                )
+            ''')
+            conn.commit()
+        finally:
+            conn.close()
+    def paramstyle(self):
+        return '?'
+    def dict_cursor(self):
+        return None  # 用 row_factory 直接转 dict
+    def integrity_error(self):
+        return sqlite3.IntegrityError
+
+class AccountManager:
+    def __init__(self):
+        """初始化账号管理器"""
+        load_dotenv()
+        db_type = os.getenv('DB_TYPE', 'sqlite').lower()
+        if db_type == 'sqlite':
+            self.adapter = _SQLiteAdapter(os.getenv('SQLITE_DB_PATH', './cursor_accounts.sqlite3'))
+            self.is_sqlite = True
+        else:
+            self.db_name = os.getenv('MYSQL_DATABASE', 'cursor_accounts')
+            self.db_config = {
+                'host': os.getenv('MYSQL_HOST', 'localhost'),
+                'port': int(os.getenv('MYSQL_PORT', 3306)),
+                'user': os.getenv('MYSQL_USER', 'root'),
+                'password': os.getenv('MYSQL_PASSWORD', ''),
+                'charset': 'utf8mb4'
+            }
+            self.adapter = _MySQLAdapter(self.db_config, self.db_name)
+            self.is_sqlite = False
+
+    def get_connection(self):
+        return self.adapter.get_connection()
+
+    def init_db(self):
+        self.adapter.init_db()
+
     def add_account(self, email: str, password: str, first_name: str = None, 
                    last_name: str = None, metadata: Dict = None, token: str = None) -> bool:
         """添加新账号
@@ -96,22 +147,25 @@ class AccountManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
+                param = self.adapter.paramstyle()
+                sql = f'''
                     INSERT INTO accounts (email, password, first_name, last_name, 
                                        status, register_time, metadata, token)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (
+                    VALUES ({param}, {param}, {param}, {param}, {param}, {param}, {param}, {param})
+                '''
+                values = (
                     email, password, first_name, last_name,
                     AccountStatus.AVAILABLE.value,
-                    datetime.now(),
+                    datetime.now().isoformat() if self.is_sqlite else datetime.now(),
                     json.dumps(metadata) if metadata else None,
                     token
-                ))
+                )
+                cursor.execute(sql, values)
                 conn.commit()
                 return True
-        except pymysql.IntegrityError:
+        except self.adapter.integrity_error():
             return False
-    
+
     def update_account_token(self, email: str, token: str) -> bool:
         """更新账号令牌
         
@@ -121,11 +175,9 @@ class AccountManager:
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE accounts 
-                SET token = %s 
-                WHERE email = %s
-            ''', (token, email))
+            param = self.adapter.paramstyle()
+            sql = f'UPDATE accounts SET token = {param} WHERE email = {param}'
+            cursor.execute(sql, (token, email))
             conn.commit()
             return cursor.rowcount > 0
 
@@ -138,20 +190,26 @@ class AccountManager:
             Dict: 账号信息，如果没有找到则返回 None
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT id, email, password, token
-                FROM accounts 
-                WHERE id = %s
-            ''', (account_id,))
-            result = cursor.fetchone()
-            
-            if not result:
-                return None
-            
+            if self.is_sqlite:
+                cursor = conn.cursor()
+                param = self.adapter.paramstyle()
+                sql = f'SELECT id, email, password, token FROM accounts WHERE id = {param}'
+                cursor.execute(sql, (account_id,))
+                result = cursor.fetchone()
+                if not result:
+                    return None
+                result = dict(result)
+            else:
+                cursor = conn.cursor(self.adapter.dict_cursor())
+                param = self.adapter.paramstyle()
+                sql = f'SELECT id, email, password, token FROM accounts WHERE id = {param}'
+                cursor.execute(sql, (account_id,))
+                result = cursor.fetchone()
+                if not result:
+                    return None
             self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
             return result
-    
+
     def get_available_account(self) -> Optional[Dict]:
         """获取一个可用的账号并标记为已分配
         
@@ -159,45 +217,50 @@ class AccountManager:
             Dict: 账号信息，如果没有可用账号则返回 None
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT id, email, password, token
-                FROM accounts 
-                WHERE status = %s
-                ORDER BY register_time ASC
-                LIMIT 1
-            ''', (AccountStatus.AVAILABLE.value,))
-            
-            result = cursor.fetchone()
-            if not result:
-                return None
-            
-            # 更新账号状态
-            cursor.execute('''
-                UPDATE accounts 
-                SET status = %s, last_allocated_time = %s
-                WHERE id = %s
-            ''', (
-                AccountStatus.ALLOCATED.value,
-                datetime.now(),
-                result[0]
-            ))
-            conn.commit()
-            
-            account_id, email, password, token = result
-            
+            if self.is_sqlite:
+                cursor = conn.cursor()
+                param = self.adapter.paramstyle()
+                sql = f'SELECT id, email, password, token FROM accounts WHERE status = {param} ORDER BY register_time ASC LIMIT 1'
+                cursor.execute(sql, (AccountStatus.AVAILABLE.value,))
+                result = cursor.fetchone()
+                if not result:
+                    return None
+                result = dict(result)
+                update_sql = f'UPDATE accounts SET status = {param}, last_allocated_time = {param} WHERE id = {param}'
+                cursor.execute(update_sql, (
+                    AccountStatus.ALLOCATED.value,
+                    datetime.now().isoformat(),
+                    result['id']
+                ))
+                conn.commit()
+                email, password, token = result['email'], result['password'], result['token']
+            else:
+                cursor = conn.cursor()
+                param = self.adapter.paramstyle()
+                sql = f'SELECT id, email, password, token FROM accounts WHERE status = {param} ORDER BY register_time ASC LIMIT 1'
+                cursor.execute(sql, (AccountStatus.AVAILABLE.value,))
+                result = cursor.fetchone()
+                if not result:
+                    return None
+                update_sql = f'UPDATE accounts SET status = {param}, last_allocated_time = {param} WHERE id = {param}'
+                cursor.execute(update_sql, (
+                    AccountStatus.ALLOCATED.value,
+                    datetime.now(),
+                    result[0]
+                ))
+                conn.commit()
+                _, email, password, token = result
             if token is None:
                 logging.info(f"未发现账号令牌, 获取账号令牌: {email}")
                 token = get_account_token(email, password)
                 if token:
                     self.update_account_token(email, token)
-
             return {
                 'email': email,
                 'password': password,
                 'token': token
             }
-    
+
     def mark_account_status(self, email: str, status: AccountStatus, is_allocated: bool = False) -> bool:
         """标记账号状态
         
@@ -210,23 +273,17 @@ class AccountManager:
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            param = self.adapter.paramstyle()
             if is_allocated:
-                last_allocated_time = datetime.now()
-
-                cursor.execute('''
-                    UPDATE accounts 
-                    SET status = %s, last_allocated_time = %s
-                    WHERE email = %s
-                ''', (status.value, last_allocated_time, email))
+                last_allocated_time = datetime.now().isoformat() if self.is_sqlite else datetime.now()
+                sql = f'UPDATE accounts SET status = {param}, last_allocated_time = {param} WHERE email = {param}'
+                cursor.execute(sql, (status.value, last_allocated_time, email))
             else:
-                cursor.execute('''
-                    UPDATE accounts 
-                    SET status = %s,
-                    WHERE email = %s
-                ''', (status.value, email))
+                sql = f'UPDATE accounts SET status = {param} WHERE email = {param}'
+                cursor.execute(sql, (status.value, email))
             conn.commit()
             return cursor.rowcount > 0
-    
+
     def get_accounts_stats(self) -> Dict:
         """获取账号统计信息
         
@@ -235,18 +292,15 @@ class AccountManager:
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                SELECT status, COUNT(*) 
-                FROM accounts 
-                GROUP BY status
-            ''')
+            sql = 'SELECT status, COUNT(*) FROM accounts GROUP BY status'
+            cursor.execute(sql)
             stats = {row[0]: row[1] for row in cursor.fetchall()}
             return {
                 'total': sum(stats.values()),
                 'available': stats.get(AccountStatus.AVAILABLE.value, 0),
                 'allocated': stats.get(AccountStatus.ALLOCATED.value, 0),
                 'invalid': stats.get(AccountStatus.INVALID.value, 0)
-            } 
+            }
 
     def get_all_accounts(self) -> List[Dict]:
         """获取所有账号列表
@@ -255,12 +309,16 @@ class AccountManager:
             List[Dict]: 账号列表
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor(pymysql.cursors.DictCursor)
-            cursor.execute('''
-                SELECT id, email, password, token, status, register_time, last_allocated_time
-                FROM accounts
-            ''')
-            return [dict(row) for row in cursor.fetchall()]
+            if self.is_sqlite:
+                cursor = conn.cursor()
+                sql = 'SELECT id, email, password, token, status, register_time, last_allocated_time FROM accounts'
+                cursor.execute(sql)
+                return [dict(row) for row in cursor.fetchall()]
+            else:
+                cursor = conn.cursor(self.adapter.dict_cursor())
+                sql = 'SELECT id, email, password, token, status, register_time, last_allocated_time FROM accounts'
+                cursor.execute(sql)
+                return [dict(row) for row in cursor.fetchall()]
 
     def batch_mark_invalid_by_suffix(self, suffix: str) -> bool:
         """批量标记指定后缀的邮箱为无效状态
@@ -273,11 +331,9 @@ class AccountManager:
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE accounts 
-                SET status = %s
-                WHERE email LIKE %s
-            ''', (AccountStatus.INVALID.value, f'%{suffix}'))
+            param = self.adapter.paramstyle()
+            sql = f'UPDATE accounts SET status = {param} WHERE email LIKE {param}'
+            cursor.execute(sql, (AccountStatus.INVALID.value, f'%{suffix}'))
             conn.commit()
             return cursor.rowcount > 0
 
@@ -289,15 +345,24 @@ class AccountManager:
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE accounts 
-                SET status = %s
-                WHERE status != %s 
-                AND DATEDIFF(CURRENT_TIMESTAMP, register_time) > 30
-            ''', (AccountStatus.AVAILABLE.value, AccountStatus.INVALID.value))
+            if self.is_sqlite:
+                sql = """
+                    UPDATE accounts 
+                    SET status = ?
+                    WHERE status != ? 
+                    AND julianday('now') - julianday(register_time) > 30
+                """
+                cursor.execute(sql, (AccountStatus.AVAILABLE.value, AccountStatus.INVALID.value))
+            else:
+                sql = '''
+                    UPDATE accounts 
+                    SET status = %s
+                    WHERE status != %s 
+                    AND DATEDIFF(CURRENT_TIMESTAMP, register_time) > 30
+                '''
+                cursor.execute(sql, (AccountStatus.AVAILABLE.value, AccountStatus.INVALID.value))
             conn.commit()
             return cursor.rowcount
-
 
 if __name__ == "__main__":
     account_manager = AccountManager()
