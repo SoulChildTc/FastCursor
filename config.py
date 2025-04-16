@@ -43,9 +43,6 @@ class Config:
         # 启用定时注册
         self.enable_register = os.getenv("ENABLE_REGISTER", "false").strip() == "true"
 
-        # 分离架构模式下后端API地址
-        self.api_url = os.getenv("API_URL", "http://127.0.0.1:5007").strip()
-
         self.check_config()
 
     def get_temp_mail(self):
