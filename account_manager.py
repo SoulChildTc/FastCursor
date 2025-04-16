@@ -207,6 +207,12 @@ class AccountManager:
                 result = cursor.fetchone()
                 if not result:
                     return None
+                    
+            if result['token'] is None or result['token'] == '':
+                logging.info(f"未发现账号令牌, 获取账号令牌: {result['email']}")
+                token = get_account_token(result['email'], result['password'])
+                if token:
+                    self.update_account_token(result['email'], token)
             self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
             return result
 
