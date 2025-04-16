@@ -214,7 +214,11 @@ class AccountManager:
                 if token:
                     self.update_account_token(result['email'], token)
             self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
-            return result
+            return {
+                'email': result['email'],
+                'password': result['password'],
+                'token': token
+            }
 
     def get_available_account(self) -> Optional[Dict]:
         """获取一个可用的账号并标记为已分配
