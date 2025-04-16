@@ -9,6 +9,7 @@ import os
 import json
 import shutil
 from datetime import datetime
+import time
 
 app = Flask(__name__)
 account_manager = AccountManager()
@@ -198,6 +199,40 @@ def account_switch():
             'code': 500,
             'message': str(e)
         }), 500
+
+@app.route('/api/logs/stream')
+def stream_logs():
+    """提供实时日志流
+    
+    Returns:
+        Response: 包含实时日志的 Server-Sent Events 流
+    """
+    def generate():
+        # 创建一个管道用于接收日志
+        log_pipe_path = '/tmp/cursor_register.pipe'
+        
+        # 如果管道不存在则创建
+        if not os.path.exists(log_pipe_path):
+            os.mkfifo(log_pipe_path)
+            
+        # 打开管道进行读取
+        with open(log_pipe_path, 'r') as pipe:
+            while True:
+                line = pipe.readline().strip()
+                if line:
+                    # 格式化为SSE消息
+                    yield f"data: {json.dumps({'log': line})}\n\n"
+                time.sleep(0.1)  # 避免过度消耗CPU
+                
+    return app.response_class(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'  # 禁用Nginx缓冲
+        }
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5007, debug=False)

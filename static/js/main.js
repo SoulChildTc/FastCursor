@@ -715,6 +715,44 @@ document.addEventListener('DOMContentLoaded', function() {
         button.disabled = true;
         button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 注册中...';
 
+        // 显示日志模态框
+        const logModal = new bootstrap.Modal(document.getElementById('log-viewer-modal'));
+        const logContent = document.getElementById('log-content');
+        logContent.innerHTML = ''; // 清空之前的日志
+        logModal.show();
+
+        // 创建 EventSource 连接
+        const eventSource = new EventSource('/api/logs/stream');
+        
+        // 监听日志消息
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const logLine = data.log;
+            
+            // 添加新的日志行
+            logContent.innerHTML += logLine + '\n';
+            
+            // 自动滚动到底部
+            const logContainer = logContent.parentElement;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        };
+
+        // 监听连接错误
+        eventSource.onerror = function() {
+            eventSource.close();
+            showToast('错误', '日志流连接已断开', 'warning');
+        };
+
+        // 监听模态框关闭事件
+        document.getElementById('log-viewer-modal').addEventListener('hidden.bs.modal', function () {
+            eventSource.close(); // 关闭日志流连接
+        });
+
+        // 清空日志按钮事件
+        document.getElementById('clear-logs').addEventListener('click', function() {
+            logContent.innerHTML = '';
+        });
+
         fetch('/api/scheduler/trigger', {
             method: 'POST'
         })
@@ -730,16 +768,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     showToast('错误', data.message, 'danger');
+                    logModal.hide(); // 出错时关闭日志模态框
                 }
             })
             .catch(error => {
                 console.error('触发注册出错:', error);
                 showToast('错误', '触发注册失败，请查看控制台日志', 'danger');
+                logModal.hide(); // 出错时关闭日志模态框
             })
             .finally(() => {
                 setTimeout(() => {
                     button.disabled = false;
-                    button.innerHTML = '<i class="bx bx-play me-2"></i>立即注册一个账号';
+                    button.innerHTML = '<i class="bx bx-play-circle me-2"></i>立即注册一个账号';
                     // 刷新调度器信息
                     loadSchedulerInfo();
                     // 添加成功动画

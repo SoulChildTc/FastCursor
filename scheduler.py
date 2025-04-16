@@ -47,22 +47,39 @@ class AccountScheduler:
             # 使用Python解释器运行register_account.py
             python_executable = sys.executable
             
-            # 直接使用subprocess.run执行脚本，并将输出直接传递到当前进程的标准输出和标准错误
-            result = subprocess.run(
-                [python_executable, register_script],
-                stdout=None,  # 使用None表示继承父进程的标准输出
-                stderr=None,  # 使用None表示继承父进程的标准错误
-                check=False
-            )
+            # 创建日志管道
+            log_pipe_path = '/tmp/cursor_register.pipe'
+            if not os.path.exists(log_pipe_path):
+                os.mkfifo(log_pipe_path)
             
-            # 检查返回码
-            if result.returncode == 0:
-                logging.info("账号注册任务执行成功")
-            else:
-                logging.error(f"账号注册任务执行失败，返回码: {result.returncode}")
+            # 打开管道用于写入
+            with open(log_pipe_path, 'w') as pipe:
+                # 运行注册脚本，将输出重定向到管道
+                process = subprocess.Popen(
+                    [python_executable, register_script],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True
+                )
+                
+                # 实时读取输出并写入管道
+                for line in process.stdout:
+                    pipe.write(line)
+                    pipe.flush()  # 确保立即写入
+                    logging.info(line.strip())  # 同时也记录到日志文件
+                
+                # 等待进程结束
+                process.wait()
+                
+                # 检查返回码
+                if process.returncode == 0:
+                    logging.info("账号注册任务执行成功")
+                else:
+                    logging.error(f"账号注册任务执行失败，返回码: {process.returncode}")
             
             # 安排下一次运行
-            self.schedule_next_run()
+            if self.config.enable_register:
+                self.schedule_next_run()
             
         except Exception as e:
             logging.error(f"执行账号注册任务时发生错误: {str(e)}")
