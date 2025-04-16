@@ -127,27 +127,27 @@ def login_cursor(email, password):
             
     handle_turnstile(tab)
 
-    # # # 检查是否需要处理验证码, 尝试 2 次
-    # for _ in range(2):
-    #     try:
-    #         if tab.ele("@data-index=0"):
-    #             logging.info("正在获取邮箱验证码...")
-    #             code = EmailVerificationHandler(email).get_verification_code()
-    #             if not code:
-    #                 logging.error("获取验证码失败")
-    #                 return False
+    # # 检查是否需要处理邮箱验证码, 尝试 2 次
+    for _ in range(2):
+        try:
+            if tab.ele('@class="rt-Text rt-r-weight-bold"'):
+                logging.info("正在获取邮箱验证码...")
+                code = EmailVerificationHandler(email).get_verification_code()
+                if not code:
+                    logging.error("获取验证码失败")
+                    return False
 
-    #             logging.info(f"成功获取验证码: {code}")
-    #             logging.info("正在输入验证码...")
-    #             i = 0
-    #             for digit in code:
-    #                 tab.ele(f"@data-index={i}").input(digit)
-    #                 time.sleep(random.uniform(0.1, 0.3))
-    #                 i += 1
-    #             logging.info("验证码输入完成")
-    #             break
-    #     except Exception as e:
-    #         logging.error(f"验证码处理过程出错: {str(e)}")
+                logging.info(f"成功获取验证码: {code}")
+                logging.info("正在输入验证码...")
+                i = 0
+                for digit in code:
+                    tab.ele(f"@data-index={i}").input(digit)
+                    time.sleep(random.uniform(0.1, 0.3))
+                    i += 1
+                logging.info("验证码输入完成")
+                break
+        except Exception as e:
+            logging.error(f"验证码处理过程出错: {str(e)}")
 
     # tab.get(settings_url)
     # try:
