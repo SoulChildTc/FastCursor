@@ -6,6 +6,7 @@ from logger import logging
 import sqlite3
 import os
 import sys
+from get_email_code import EmailVerificationHandler
 
 
 class CursorAuthManager:

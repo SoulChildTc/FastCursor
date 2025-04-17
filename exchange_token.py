@@ -70,10 +70,12 @@ def exchange_token(uuid, verifier, challenge, token):
     return response.json().get("accessToken")
 
 def get_new_token(token):
+    
     # 如果token 过期大于 500 天，可能是老的永久 token , 直接返回
     if is_old_token(token):
         return token
-
+    
+    logging.info(f"开始交换新token")
     code_uuid,code_verifier,code_challenge=get_pkce_info()
     return exchange_token(code_uuid,code_verifier,code_challenge,token)
 
