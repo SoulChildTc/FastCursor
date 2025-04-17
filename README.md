@@ -41,6 +41,7 @@ uv pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
+[自定义域名邮箱参考](https://cursor-auto-free-doc.vercel.app/zh/quick-start.html)
 
 ### 4. 运行项目
 
