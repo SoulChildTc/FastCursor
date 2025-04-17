@@ -4,6 +4,7 @@ from logger import logging
 from exit_cursor import RestartCursor
 from account_manager import AccountManager, AccountStatus
 from config import Config
+from exchange_token import get_new_token
 
 config = Config()
 account_manager = AccountManager()
@@ -40,6 +41,8 @@ def change_cursor_account(account_id=None):
             logging.error("暂无可用账号")
             return
             
+        token = get_new_token(token)
+
         update_cursor_auth(
             email=email, 
             access_token=token, 

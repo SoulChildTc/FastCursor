@@ -213,6 +213,8 @@ class AccountManager:
                 token = get_account_token(result['email'], result['password'])
                 if token:
                     self.update_account_token(result['email'], token)
+            else:
+                token = result.get('token')
             self.mark_account_status(result['email'], AccountStatus.ALLOCATED, True)
             return {
                 'email': result['email'],

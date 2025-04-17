@@ -9,6 +9,10 @@ from config import Config
 from datetime import datetime
 from logger import logging
 import os
+import hashlib
+import base64
+import uuid
+import secrets
 
 class VerificationStatus(Enum):
     """验证状态枚举"""
@@ -196,3 +200,45 @@ def save_screenshot(tab, stage: str, timestamp: bool = True) -> None:
     except Exception as e:
         logging.warning(f"截图保存失败: {str(e)}")
 
+
+class PKCEInfo:
+    def generate_uuid():
+        return str(uuid.uuid4())
+
+
+    def generate_pkce_code_verifier(length=43):
+        if length < 43 or length > 128:
+            raise ValueError("PKCE 要求 code_verifier 长度为 43~128 字符")
+
+        # 生成密码学安全的随机字节（长度计算确保 Base64 编码后足够）
+        byte_length = (length * 3 + 3) // 4  # Base64 长度换算
+        random_bytes = secrets.token_bytes(byte_length)
+        
+        # 转换为 Base64URL 格式（无填充符 =）
+        verifier = base64.urlsafe_b64encode(random_bytes).decode('utf-8')[:length]
+        
+        # 确保首字符不是连字符（某些 OAuth 实现可能敏感）
+        if verifier.startswith('-'):
+            verifier = 'A' + verifier[1:]
+        
+        return verifier
+
+
+    def generate_challenge(verifier):
+        # 计算 SHA-256 哈希
+        sha256_hash = hashlib.sha256(verifier.encode('utf-8')).digest()
+
+        # Base64URL 编码（去除末尾的 =）
+        code_challenge = base64.urlsafe_b64encode(sha256_hash).decode('utf-8').replace('=', '')
+        return code_challenge
+
+    @classmethod
+    def generate(cls):
+        code_uuid=cls.generate_uuid()
+        code_verifier=cls.generate_pkce_code_verifier()
+        code_challenge=cls.generate_challenge(code_verifier)
+
+        logging.debug(f"uuid: {code_uuid}")
+        logging.debug(f"verifier: {code_verifier}")
+        logging.debug(f"challenge: {code_challenge}")
+        return code_uuid,code_verifier,code_challenge
