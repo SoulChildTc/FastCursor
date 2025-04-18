@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from logger import logging
 from config import Config
 from account_manager import AccountManager
+import tempfile
 
 class AccountScheduler:
     def __init__(self, enable_register=True, enable_reset=True, reset_time="02:00"):
