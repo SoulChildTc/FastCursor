@@ -1,3 +1,4 @@
+import sys
 from flask import Flask, jsonify, request, render_template
 from account_manager import AccountManager, AccountStatus
 from logger import logging
@@ -208,12 +209,10 @@ def stream_logs():
         Response: 包含实时日志的 Server-Sent Events 流
     """
     def generate():
-        # 创建一个管道用于接收日志
-        log_pipe_path = '/tmp/cursor_register.pipe'
-        
-        # 如果管道不存在则创建
-        if not os.path.exists(log_pipe_path):
-            os.mkfifo(log_pipe_path)
+        if sys.platform == "win32":
+            log_pipe_path = os.path.join(tempfile.gettempdir(), "cursor_register.pipe")
+        else:
+            log_pipe_path = '/tmp/cursor_register.pipe'
             
         # 打开管道进行读取
         with open(log_pipe_path, 'r') as pipe:

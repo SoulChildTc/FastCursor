@@ -35,6 +35,12 @@ class AccountScheduler:
         else:
             logging.info("旧账号重置任务已禁用")
 
+    def _get_log_pipe_path(self):
+        if sys.platform == "win32":
+            return os.path.join(tempfile.gettempdir(), "cursor_register.pipe")
+        else:
+            return '/tmp/cursor_register.pipe'
+
     def register_account(self):
         """运行账号注册脚本"""
         try:
@@ -48,10 +54,8 @@ class AccountScheduler:
             python_executable = sys.executable
             
             # 创建日志管道
-            log_pipe_path = '/tmp/cursor_register.pipe'
-            if not os.path.exists(log_pipe_path):
-                os.mkfifo(log_pipe_path)
-            
+            log_pipe_path = self._get_log_pipe_path()
+
             # 打开管道用于写入
             with open(log_pipe_path, 'w') as pipe:
                 # 运行注册脚本，将输出重定向到管道
