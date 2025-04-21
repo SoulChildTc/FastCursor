@@ -262,7 +262,7 @@ class AccountManager:
                 ))
                 conn.commit()
                 _, email, password, token = result
-            if token is None:
+            if token is None or token == "":
                 logging.info(f"未发现账号令牌, 获取账号令牌: {email}")
                 token = get_account_token(email, password)
                 if token:
