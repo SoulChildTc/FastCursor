@@ -174,6 +174,39 @@ def batch_mark_invalid():
             'message': str(e)
         }), 500
 
+@app.route('/api/account/mark-status', methods=['POST'])
+def mark_account_status():
+    """标记账号状态"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        status = data.get('status')
+
+        if status == 'available':
+            status = AccountStatus.AVAILABLE
+        elif status == 'allocated':
+            status = AccountStatus.ALLOCATED
+        elif status == 'invalid':
+            status = AccountStatus.INVALID
+        else:
+            return jsonify({
+                'code': 400,
+                'message': '请提供正确的状态'
+            }), 400
+
+        account_manager.mark_account_status(email, status, True)
+        return jsonify({
+            'code': 200,
+            'message': '账号状态标记成功'
+        })
+    except Exception as e:
+        return jsonify({
+            'code': 500,
+            'message': str(e)
+        }), 500
+
+
+
 @app.route('/api/account/switch', methods=['POST'])
 def account_switch():
     """更换账号

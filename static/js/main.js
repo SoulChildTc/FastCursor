@@ -410,32 +410,28 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {Object} account 账号数据
      */
     function showAccountDetails(account) {
+        // 保存当前账号数据到模态框元素上，方便后续使用
+        const modal = document.getElementById('account-details-modal');
+        modal.setAttribute('data-account', JSON.stringify(account));
+        
         document.getElementById('detail-email').value = account.email || '';
         document.getElementById('detail-password').value = account.password || '';
         document.getElementById('detail-token').value = account.token || '无';
-        document.getElementById('detail-status').value = getStatusText(account.status);
         document.getElementById('detail-register-time').value = formatDateTime(account.register_time);
         document.getElementById('detail-last-allocated-time').value = account.last_allocated_time ? formatDateTime(account.last_allocated_time) : '无';
         
-        // 根据状态设置不同的颜色
-        const statusInput = document.getElementById('detail-status');
-        statusInput.classList.remove('text-success', 'text-warning', 'text-danger');
-        
-        if (account.status === 'available') {
-            statusInput.classList.add('text-success');
-        } else if (account.status === 'allocated') {
-            statusInput.classList.add('text-warning');
-        } else if (account.status === 'invalid') {
-            statusInput.classList.add('text-danger');
-        }
+        // 设置单选按钮状态
+        document.getElementById('status-available').checked = account.status === 'available';
+        document.getElementById('status-allocated').checked = account.status === 'allocated';
+        document.getElementById('status-invalid').checked = account.status === 'invalid';
         
         // 重置密码显示状态
         document.getElementById('detail-password').setAttribute('type', 'password');
         document.getElementById('toggle-password').innerHTML = '<i class="bx bx-show"></i>';
         
         // 显示模态框
-        const modal = new bootstrap.Modal(document.getElementById('account-details-modal'));
-        modal.show();
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
     }
 
     /**
@@ -930,6 +926,125 @@ document.addEventListener('DOMContentLoaded', function() {
             // 降级为使用原生 confirm
             if (confirm(`确定要更换到账号 ${account.email} 吗？`)) {
                 handleConfirm();
+            }
+        }
+    }
+
+    // 添加保存状态按钮的点击事件
+    document.getElementById('save-status-btn').addEventListener('click', function() {
+        const modal = document.getElementById('account-details-modal');
+        const accountData = JSON.parse(modal.getAttribute('data-account'));
+        const email = accountData.email;
+        
+        // 获取选中的状态值
+        const statusRadios = document.getElementsByName('status-option');
+        let selectedStatus = '';
+        for (const radio of statusRadios) {
+            if (radio.checked) {
+                selectedStatus = radio.value;
+                break;
+            }
+        }
+        
+        // 如果状态没有变化，不执行保存操作
+        if (selectedStatus === accountData.status) {
+            showToast('提示', '状态未发生变化', 'info');
+            return;
+        }
+        
+        // 保存按钮状态
+        const button = this;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.classList.add('saving');
+        button.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>保存中...';
+        
+        // 发送请求更新状态
+        fetch('/api/account/mark-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                status: selectedStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                showToast('成功', '账号状态已更新', 'success');
+                
+                // 更新本地数据
+                accountData.status = selectedStatus;
+                modal.setAttribute('data-account', JSON.stringify(accountData));
+                
+                // 更新表格中的账号状态
+                updateAccountInTable(accountData);
+                
+                // 刷新统计信息
+                updateStats();
+                
+                // 隐藏模态框
+                bootstrap.Modal.getInstance(modal).hide();
+            } else {
+                showToast('错误', data.message || '状态更新失败', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('更新状态失败:', error);
+            showToast('错误', '状态更新失败，请查看控制台日志', 'danger');
+        })
+        .finally(() => {
+            // 恢复按钮状态
+            button.disabled = false;
+            button.classList.remove('saving');
+            button.innerHTML = originalText;
+        });
+    });
+
+    /**
+     * 更新表格中的账号状态
+     * @param {Object} updatedAccount 更新后的账号
+     */
+    function updateAccountInTable(updatedAccount) {
+        // 查找对应的表格行
+        const rows = document.querySelectorAll('#accounts-table-body tr');
+        for (const row of rows) {
+            const accountData = JSON.parse(row.getAttribute('data-account'));
+            if (accountData.id === updatedAccount.id) {
+                // 更新行数据
+                row.setAttribute('data-account', JSON.stringify(updatedAccount));
+                
+                // 更新状态单元格
+                const statusCell = row.querySelector('td.status-column');
+                if (statusCell) {
+                    const statusBadge = statusCell.querySelector('.status-badge');
+                    if (statusBadge) {
+                        statusBadge.className = 'status-badge ' + getStatusClass(updatedAccount.status);
+                        statusBadge.textContent = getStatusText(updatedAccount.status);
+                    }
+                }
+                
+                // 更新操作按钮状态
+                const switchBtn = row.querySelector('.switch-account');
+                if (switchBtn) {
+                    if (updatedAccount.status === 'available') {
+                        switchBtn.classList.remove('disabled');
+                        switchBtn.disabled = false;
+                    } else {
+                        switchBtn.classList.add('disabled');
+                        switchBtn.disabled = true;
+                    }
+                }
+                
+                // 添加行高亮动画效果
+                row.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    row.classList.remove('animate__animated', 'animate__pulse');
+                }, 1000);
+                
+                break;
             }
         }
     }

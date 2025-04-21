@@ -572,3 +572,53 @@ body {
     font-weight: 500;
 }
 
+/* 状态单选按钮组样式 */
+.status-radio-group {
+    display: flex;
+    gap: 15px;
+    border-radius: var(--border-radius);
+    padding: 10px 15px;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.status-radio-group .form-check-inline {
+    margin-right: 0;
+}
+
+.status-radio-group .form-check-input {
+    cursor: pointer;
+}
+
+.status-radio-group .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.status-radio-group .form-check-label {
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0 5px;
+    transition: var(--transition);
+}
+
+.status-radio-group .form-check-input:checked + .form-check-label {
+    transform: scale(1.05);
+}
+
+.status-radio-group .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(83, 82, 237, 0.25);
+}
+
+#save-status-btn {
+    transition: var(--transition);
+}
+
+#save-status-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(83, 82, 237, 0.3);
+}
+
+#save-status-btn.saving {
+    pointer-events: none;
+}
+
