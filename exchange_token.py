@@ -58,12 +58,19 @@ def exchange_token(uuid, verifier, challenge, token):
         logging.info(response.text)
         raise Exception(f"交换 token 提交失败: {response.text}")
     
-    
-    response=requests.get(
-        url=f"https://api2.cursor.sh/auth/poll?uuid={uuid}&verifier={verifier}",
-        headers=headers
-    )
-    if response.status_code!=200:
+    for i in range(5):
+        print(f"尝试获取新token{i+1}/5")
+        response=requests.get(
+            url=f"https://api2.cursor.sh/auth/poll?uuid={uuid}&verifier={verifier}",
+            headers=headers
+        )
+
+        if response.status_code==200:
+            break
+            
+        time.sleep(1)
+
+    if response.status_code != 200:
         logging.info(response.text)
         raise Exception(f"交换 token 失败: {response.text}")
     
@@ -75,5 +82,5 @@ def get_new_token(token):
     return exchange_token(code_uuid,code_verifier,code_challenge,token)
 
 if __name__=="__main__":
-    print(get_new_token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdXRoMHx1c2VyXzAxSlJZVzRRNTVKWEE1RDlCTjBIUEgzVDAwIiwidGltZSI6IjE3NDQ4NzA2MDYiLCJyYW5kb21uZXNzIjoiMTcyNzY1ZTQtM2ZmMi00ZGE0IiwiZXhwIjoxNzQ0ODc2MDA2LCJpc3MiOiJodHRwczovL2F1dGhlbnRpY2F0aW9uLmN1cnNvci5zaCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJhdWQiOiJodHRwczovL2N1cnNvci5jb20ifQ.KJ4kCQB4HcCxQace6VcKB27USGmdnJ7deAMQuYQmh8I"))
+    print(get_new_token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdXRoMHx1c2VyXzAxSlBIMjlaU0o2RVg3RE1SOU4yNERYSzZBIiwidGltZSI6IjE3NDUyMDE5NTQiLCJyYW5kb21uZXNzIjoiYWIyMGZjN2YtOWZjOC00NmI4IiwiZXhwIjoxNzQ1MjA3MzU0LCJpc3MiOiJodHRwczovL2F1dGhlbnRpY2F0aW9uLmN1cnNvci5zaCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJhdWQiOiJodHRwczovL2N1cnNvci5jb20ifQ.jXhGheCHy4dlgw60knrvZiZSXU_WILFDob4wyY-vCf8"))
 
