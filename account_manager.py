@@ -350,7 +350,7 @@ class AccountManager:
             return cursor.rowcount > 0
 
     def reset_old_accounts(self) -> int:
-        """重置注册时间超过30天且非无效状态的账号为可用状态
+        """重置最后分配时间超过30天且非无效状态的账号为可用状态
         
         Returns:
             int: 更新的账号数量
@@ -362,7 +362,7 @@ class AccountManager:
                     UPDATE accounts 
                     SET status = ?
                     WHERE status != ? 
-                    AND julianday('now') - julianday(register_time) > 30
+                    AND julianday('now') - julianday(last_allocated_time) > 30
                 """
                 cursor.execute(sql, (AccountStatus.AVAILABLE.value, AccountStatus.INVALID.value))
             else:
@@ -370,7 +370,7 @@ class AccountManager:
                     UPDATE accounts 
                     SET status = %s
                     WHERE status != %s 
-                    AND DATEDIFF(CURRENT_TIMESTAMP, register_time) > 30
+                    AND DATEDIFF(CURRENT_TIMESTAMP, last_allocated_time) > 30
                 '''
                 cursor.execute(sql, (AccountStatus.AVAILABLE.value, AccountStatus.INVALID.value))
             conn.commit()
