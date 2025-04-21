@@ -12,6 +12,7 @@ import shutil
 from datetime import datetime
 import time
 import tempfile
+from exchange_token import get_new_token
 
 app = Flask(__name__)
 account_manager = AccountManager()
@@ -40,6 +41,7 @@ def get_account():
     try:
         account = account_manager.get_available_account()
         if account:
+            account["token"] = get_new_token(account['token'])
             return jsonify({
                 'code': 200,
                 'data': account,
