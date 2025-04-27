@@ -15,13 +15,15 @@ class Config:
             application_path = os.path.dirname(os.path.abspath(__file__))
 
         # 指定 .env 文件的路径
-        dotenv_path = os.path.join(application_path, ".env")
+        self.dotenv_path = os.path.join(application_path, ".env")
 
-        if not os.path.exists(dotenv_path):
-            raise FileNotFoundError(f"文件 {dotenv_path} 不存在")
+        # 如果配置文件不存在，创建默认配置
+        if not os.path.exists(self.dotenv_path):
+            logging.info(f"配置文件 {self.dotenv_path} 不存在，正在创建默认配置...")
+            self.create_default_config()
 
         # 加载 .env 文件
-        load_dotenv(dotenv_path, override=True)
+        load_dotenv(self.dotenv_path, override=True)
         self.imap = False
         self.temp_mail = os.getenv("TEMP_MAIL", "").strip().split("@")[0]
         self.temp_mail_epin = os.getenv("TEMP_MAIL_EPIN", "").strip()
@@ -43,18 +45,86 @@ class Config:
         # 启用定时注册
         self.enable_register = os.getenv("ENABLE_REGISTER", "false").strip() == "true"
 
+        self.browser_path = os.getenv("BROWSER_PATH", "").strip()
+        self.browser_headless = os.getenv("BROWSER_HEADLESS", "True").strip() == "True"
+        self.browser_user_agent = os.getenv("BROWSER_USER_AGENT", "").strip()
+        self.browser_proxy = os.getenv("BROWSER_PROXY", "").strip()
+        self.mail_protocol = os.getenv("MAIL_PROTOCOL", "POP3").strip()
+
         self.check_config()
 
-    def get_temp_mail(self):
+    def create_default_config(self):
+        """创建默认的配置文件"""
+        default_config = """# FastCursor 配置文件
+# 临时邮箱配置
+TEMP_MAIL=example
+TEMP_MAIL_EPIN=
+TEMP_MAIL_EXT=@mailto.plus
 
+# 域名配置 (多个域名用逗号分隔)
+DOMAIN=example.com,another-example.com
+
+# 浏览器配置
+BROWSER_PATH=
+BROWSER_HEADLESS=True
+BROWSER_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.92 Safari/537.36
+BROWSER_PROXY=
+"""
+        try:
+            with open(self.dotenv_path, "w") as f:
+                f.write(default_config)
+            logging.info(f"默认配置文件已创建: {self.dotenv_path}")
+        except Exception as e:
+            logging.error(f"创建默认配置文件失败: {e}")
+            raise
+
+    def save_env_config(self, config_dict):
+        """保存配置到 .env 文件"""
+        current_config = {}
+        if os.path.exists(self.dotenv_path):
+            try:
+                with open(self.dotenv_path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
+                            current_config[key.strip()] = value.strip()
+            except Exception as e:
+                logging.error(f"读取配置文件失败: {e}")
+        
+        current_config.update(config_dict)
+        
+        config_str = ""
+        config_str += "# 临时邮箱配置\n"
+        for key in ["TEMP_MAIL", "TEMP_MAIL_EPIN", "TEMP_MAIL_EXT"]:
+            if key in current_config:
+                config_str += f"{key}={current_config[key]}\n"
+        
+        config_str += "\n# 域名配置\n"
+        if "DOMAIN" in current_config:
+            config_str += f"DOMAIN={current_config['DOMAIN']}\n"
+        
+        config_str += "\n# 浏览器配置\n"
+        for key in ["BROWSER_PATH", "BROWSER_HEADLESS", "BROWSER_USER_AGENT", "BROWSER_PROXY"]:
+            if key in current_config:
+                config_str += f"{key}={current_config[key]}\n"
+        
+        try:
+            with open(self.dotenv_path, "w") as f:
+                f.write(config_str)
+            load_dotenv(self.dotenv_path, override=True)
+            return True
+        except Exception as e:
+            logging.error(f"保存配置失败: {e}")
+            return False
+    
+    def get_temp_mail(self):
         return self.temp_mail
 
     def get_temp_mail_epin(self):
-
         return self.temp_mail_epin
 
     def get_temp_mail_ext(self):
-
         return self.temp_mail_ext
 
     def get_imap(self):
