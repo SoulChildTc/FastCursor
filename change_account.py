@@ -7,7 +7,6 @@ from config import Config
 from exchange_token import get_new_token
 
 config = Config()
-account_manager = AccountManager()
 
 def update_cursor_auth(email=None, access_token=None, refresh_token=None):
     """
@@ -36,8 +35,11 @@ def change_cursor_account(account_id=None, email=None, token=None):
             }
 
         elif account_id:
+            account_manager = AccountManager()
+
             account_data = account_manager.get_account_by_id(account_id)
         else:
+            account_manager = AccountManager()
             account_data = account_manager.get_available_account()
 
         email = account_data.get("email")
