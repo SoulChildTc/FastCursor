@@ -195,7 +195,7 @@ def register_account(save_to_db=True, change_account=False):
         logging.info(f"正在访问登录页面: {login_url}")
         tab.get(login_url)
 
-        sign_up_account(browser, tab, account, first_name, last_name, password, email_handler, save_to_db)
+        sign_up_account(browser, tab, account, first_name, last_name, password, email_handler, save_to_db, change_account)
             
 
     except Exception as e:
