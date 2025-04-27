@@ -120,6 +120,25 @@ def create_icon():
         print(f"! 创建图标时出错: {e}")
         return None
 
+# 检查必需文件是否存在
+def check_required_files():
+    """检查必需的文件是否存在"""
+    required_files = ["names-dataset.txt"]
+    required_dirs = ["turnstilePatch"]
+    
+    for file in required_files:
+        if not os.path.isfile(file):
+            print(f"❌ 错误: 缺少必需文件 {file}")
+            return False
+            
+    for directory in required_dirs:
+        if not os.path.isdir(directory):
+            print(f"❌ 错误: 缺少必需目录 {directory}")
+            return False
+    
+    print("✓ 所有必需文件和目录已检查")
+    return True
+
 # 打包应用
 def build_app(icon_file):
     """使用PyInstaller打包应用"""
@@ -154,6 +173,17 @@ def build_app(icon_file):
             cmd.extend(["--add-data", f"{icon_file};."])
         else:  # Linux
             cmd.extend(["--add-data", f"{icon_file}:."])
+    
+    # 添加其他必需文件
+    if PLATFORM == "darwin":  # macOS
+        cmd.extend(["--add-data", "names-dataset.txt:."])
+        cmd.extend(["--add-data", "turnstilePatch:turnstilePatch"])
+    elif PLATFORM == "windows":  # Windows
+        cmd.extend(["--add-data", "names-dataset.txt;."])
+        cmd.extend(["--add-data", "turnstilePatch;turnstilePatch"])
+    else:  # Linux
+        cmd.extend(["--add-data", "names-dataset.txt:."])
+        cmd.extend(["--add-data", "turnstilePatch:turnstilePatch"])
     
     # 如果是macOS，添加额外选项
     if PLATFORM == "darwin":
@@ -193,6 +223,10 @@ def build_app(icon_file):
 if __name__ == "__main__":
     # 确保依赖已安装
     ensure_dependencies()
+    
+    # 检查必需文件
+    if not check_required_files():
+        sys.exit(1)
     
     # 创建图标
     icon_file = create_icon()
