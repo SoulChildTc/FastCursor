@@ -13,6 +13,8 @@ import hashlib
 import base64
 import uuid
 import secrets
+import sys
+import tempfile
 
 class VerificationStatus(Enum):
     """验证状态枚举"""
@@ -142,9 +144,6 @@ class EmailGenerator:
         except FileNotFoundError:
             # 如果直接读取失败，尝试从应用程序路径读取
             try:
-                import sys
-                import os
-                
                 # 获取应用程序根路径
                 if getattr(sys, 'frozen', False):
                     # 打包后的环境
@@ -208,10 +207,18 @@ def save_screenshot(tab, stage: str, timestamp: bool = True) -> None:
         timestamp: 是否添加时间戳
     """
     try:
-        # 创建 screenshots 目录
-        screenshot_dir = "screenshots"
-        if not os.path.exists(screenshot_dir):
-            os.makedirs(screenshot_dir)
+        # 直接使用系统临时目录
+        screenshot_dir = tempfile.gettempdir()
+        
+        # 创建FastCursor子目录（如果可能）
+        try:
+            fastcursor_temp_dir = os.path.join(screenshot_dir, "FastCursor")
+            if not os.path.exists(fastcursor_temp_dir):
+                os.makedirs(fastcursor_temp_dir, exist_ok=True)
+            screenshot_dir = fastcursor_temp_dir
+        except Exception:
+            # 如果创建子目录失败，就使用系统临时目录根目录
+            pass
 
         # 生成文件名
         if timestamp:
@@ -223,9 +230,16 @@ def save_screenshot(tab, stage: str, timestamp: bool = True) -> None:
 
         # 保存截图
         tab.get_screenshot(filepath)
-        logging.debug(f"截图已保存: {filepath}")
+        logging.info(f"截图已保存: {filepath}")
     except Exception as e:
         logging.warning(f"截图保存失败: {str(e)}")
+        # 最后备用方案：直接创建临时文件
+        try:
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            tab.get_screenshot(temp_file.name)
+            logging.info(f"截图已保存到临时文件: {temp_file.name}")
+        except Exception as e2:
+            logging.error(f"无法保存截图到临时文件: {str(e2)}")
 
 
 class PKCEInfo:
