@@ -3,6 +3,7 @@ import os
 import sys
 import random
 from logger import logging
+import codecs
 
 class Config:
     def __init__(self):
@@ -22,8 +23,9 @@ class Config:
             logging.info(f"配置文件 {self.dotenv_path} 不存在，正在创建默认配置...")
             self.create_default_config()
 
-        # 加载 .env 文件
-        load_dotenv(self.dotenv_path, override=True)
+        # 自定义加载 .env 文件，支持多种编码
+        self.load_env_file()
+        
         self.imap = False
         self.temp_mail = os.getenv("TEMP_MAIL", "").strip().split("@")[0]
         self.temp_mail_epin = os.getenv("TEMP_MAIL_EPIN", "").strip()
@@ -53,6 +55,50 @@ class Config:
 
         self.check_config()
 
+    def load_env_file(self):
+        """自定义加载.env文件，支持多种编码"""
+        if not os.path.exists(self.dotenv_path):
+            logging.warning(f"配置文件不存在: {self.dotenv_path}")
+            return
+            
+        # 尝试不同的编码方式读取文件
+        encodings = ['utf-8', 'gbk', 'gb2312', 'latin1', 'utf-16']
+        env_contents = None
+        
+        for encoding in encodings:
+            try:
+                with codecs.open(self.dotenv_path, 'r', encoding=encoding) as f:
+                    env_contents = f.read()
+                logging.info(f"成功使用 {encoding} 编码读取配置文件")
+                break
+            except UnicodeDecodeError:
+                continue
+            except Exception as e:
+                logging.error(f"读取配置文件时出错 ({encoding}): {str(e)}")
+                continue
+        
+        if env_contents is None:
+            logging.error("无法使用任何编码读取配置文件，将使用默认配置")
+            self.create_default_config()
+            return
+            
+        # 手动解析环境变量并设置
+        for line in env_contents.splitlines():
+            line = line.strip()
+            # 跳过注释和空行
+            if not line or line.startswith('#'):
+                continue
+                
+            # 解析键值对
+            if '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                # 设置环境变量
+                os.environ[key] = value
+                
+        logging.info("配置文件加载完成")
+
     def create_default_config(self):
         """创建默认的配置文件"""
         default_config = """# FastCursor 配置文件
@@ -71,7 +117,7 @@ BROWSER_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 BROWSER_PROXY=
 """
         try:
-            with open(self.dotenv_path, "w") as f:
+            with codecs.open(self.dotenv_path, "w", "utf-8") as f:
                 f.write(default_config)
             logging.info(f"默认配置文件已创建: {self.dotenv_path}")
         except Exception as e:
@@ -81,17 +127,27 @@ BROWSER_PROXY=
     def save_env_config(self, config_dict):
         """保存配置到 .env 文件"""
         current_config = {}
-        if os.path.exists(self.dotenv_path):
-            try:
-                with open(self.dotenv_path, "r") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#") and "=" in line:
-                            key, value = line.split("=", 1)
-                            current_config[key.strip()] = value.strip()
-            except Exception as e:
-                logging.error(f"读取配置文件失败: {e}")
         
+        # 首先尝试读取现有配置
+        if os.path.exists(self.dotenv_path):
+            # 尝试不同的编码方式读取文件
+            encodings = ['utf-8', 'gbk', 'gb2312', 'latin1', 'utf-16']
+            for encoding in encodings:
+                try:
+                    with codecs.open(self.dotenv_path, 'r', encoding=encoding) as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith("#") and "=" in line:
+                                key, value = line.split("=", 1)
+                                current_config[key.strip()] = value.strip()
+                    break
+                except UnicodeDecodeError:
+                    continue
+                except Exception as e:
+                    logging.error(f"读取配置文件失败 ({encoding}): {e}")
+                    continue
+        
+        # 更新配置
         current_config.update(config_dict)
         
         config_str = ""
@@ -110,9 +166,12 @@ BROWSER_PROXY=
                 config_str += f"{key}={current_config[key]}\n"
         
         try:
-            with open(self.dotenv_path, "w") as f:
+            # 始终使用UTF-8编码保存
+            with codecs.open(self.dotenv_path, "w", "utf-8") as f:
                 f.write(config_str)
-            load_dotenv(self.dotenv_path, override=True)
+            
+            # 重新加载配置
+            self.load_env_file()
             return True
         except Exception as e:
             logging.error(f"保存配置失败: {e}")
@@ -216,17 +275,15 @@ BROWSER_PROXY=
 
     def print_config(self):
         if self.imap:
-            logging.info(f"\033[32mIMAP服务器: {self.imap_server}\033[0m")
-            logging.info(f"\033[32mIMAP端口: {self.imap_port}\033[0m")
-            logging.info(f"\033[32mIMAP用户名: {self.imap_user}\033[0m")
-            logging.info(f"\033[32mIMAP密码: {'*' * len(self.imap_pass)}\033[0m")
-            logging.info(f"\033[32mIMAP收件箱目录: {self.imap_dir}\033[0m")
+            logging.info(f"IMAP服务器: {self.imap_server}")
+            logging.info(f"IMAP端口: {self.imap_port}")
+            logging.info(f"IMAP用户名: {self.imap_user}")
+            logging.info(f"IMAP密码: {'*' * len(self.imap_pass)}")
+            logging.info(f"IMAP收件箱目录: {self.imap_dir}")
         if self.temp_mail != "null":
-            logging.info(
-                f"\033[32m临时邮箱: {self.temp_mail}{self.temp_mail_ext}\033[0m"
-            )
-        logging.info(f"\033[32m可用域名: {', '.join(self.domains)}\033[0m")
-        logging.info(f"\033[32m当前使用域名: {self.get_domain()}\033[0m")
+            logging.info(f"临时邮箱: {self.temp_mail}{self.temp_mail_ext}")
+        logging.info(f"可用域名: {', '.join(self.domains)}")
+        logging.info(f"当前使用域名: {self.get_domain()}")
 
 
 # 使用示例
