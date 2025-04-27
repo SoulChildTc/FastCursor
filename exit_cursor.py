@@ -42,7 +42,7 @@ def RestartCursor():
         logging.info("开始重启Cursor...")
         # 先关闭现有进程
         if not ExitCursor():
-            logging.error("无法正确关闭现有 Cursor 进程")
+            logging.error("无法正确关闭现有 Cursor 进程, 请手动重启 Cursor")
             return False
             
         time.sleep(1)  # 等待进程完全关闭
