@@ -1,5 +1,8 @@
 import os
+import sys
+import argparse
 from account_manager import AccountManager
+from change_account import change_cursor_account
 
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
@@ -18,7 +21,7 @@ def add_account(email, password, first_name, last_name, token):
     account_manager.add_account(email=email, password=password, first_name=first_name, last_name=last_name, token=token)
 
 
-def sign_up_account(browser, tab, account, first_name, last_name, password, email_handler):
+def sign_up_account(browser, tab, account, first_name, last_name, password, email_handler, save_to_db=True, change_account=False):
     logging.info("=== 开始注册账号流程 ===")
     logging.info(f"正在访问注册页面: {sign_up_url}")
     tab.get(sign_up_url)
@@ -124,15 +127,25 @@ def sign_up_account(browser, tab, account, first_name, last_name, password, emai
     logging.info("\n=== 注册完成 ===")
     logging.info(f"Cursor 账号信息:\n邮箱: {account}\n密码: {password}")
 
-    add_account(account, password, first_name, last_name, token)
+    if save_to_db:
+        logging.info("正在将账号信息保存到数据库...")
+        add_account(account, password, first_name, last_name, token)
+        logging.info("账号信息已保存到数据库")
+    else:
+        logging.info("根据设置，账号信息不会保存到数据库")
     
-    # time.sleep(5)
+    if change_account:
+        change_cursor_account(None, account, token)
+
     return True
 
 
-def register_account():
+def register_account(save_to_db=True, change_account=False):
     """
     账号注册
+    
+    Args:
+        save_to_db: 是否将账号保存到数据库，默认为True
     
     Returns:
         注册成功与否
@@ -182,7 +195,7 @@ def register_account():
         logging.info(f"正在访问登录页面: {login_url}")
         tab.get(login_url)
 
-        sign_up_account(browser, tab, account, first_name, last_name, password, email_handler)
+        sign_up_account(browser, tab, account, first_name, last_name, password, email_handler, save_to_db)
             
 
     except Exception as e:
@@ -196,4 +209,17 @@ def register_account():
 
 
 if __name__ == "__main__":
-    register_account()
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='注册Cursor账号')
+    parser.add_argument('--no-save', action='store_true', help='不将账号保存到数据库')
+    parser.add_argument('--change-account', action='store_true', help='不将账号保存到数据库')
+    args = parser.parse_args()
+    
+    # 根据参数决定是否保存账号
+    save_to_db = not args.no_save
+    change_account = args.change_account
+    
+    if not save_to_db:
+        logging.info("启用了--no-save参数，账号将不会保存到数据库")
+    
+    register_account(save_to_db, change_account)

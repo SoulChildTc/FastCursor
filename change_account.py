@@ -24,12 +24,18 @@ def reset_cursor_machine_id(restart=True):
     if restart:
         RestartCursor()
 
-def change_cursor_account(account_id=None):
+def change_cursor_account(account_id=None, email=None, token=None):
     """
     更换 Cursor 账号
     """
     try:
-        if account_id:
+        if email is not None and token is not None:
+            account_data = {
+                "email": email,
+                "token": token
+            }
+
+        elif account_id:
             account_data = account_manager.get_account_by_id(account_id)
         else:
             account_data = account_manager.get_available_account()
