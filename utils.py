@@ -134,8 +134,35 @@ class EmailGenerator:
         self.default_last_name = self.generate_random_name()
 
     def load_names(self):
-        with open("names-dataset.txt", "r") as file:
-            return file.read().split()
+        """加载名字数据集，支持开发环境和打包后的环境"""
+        try:
+            # 尝试直接从当前目录读取
+            with open("names-dataset.txt", "r") as file:
+                return file.read().split()
+        except FileNotFoundError:
+            # 如果直接读取失败，尝试从应用程序路径读取
+            try:
+                import sys
+                import os
+                
+                # 获取应用程序根路径
+                if getattr(sys, 'frozen', False):
+                    # 打包后的环境
+                    base_path = sys._MEIPASS
+                else:
+                    # 开发环境
+                    base_path = os.path.dirname(os.path.abspath(__file__))
+                
+                file_path = os.path.join(base_path, "names-dataset.txt")
+                # logging.info(f"尝试从路径读取名字数据: {file_path}")
+                
+                with open(file_path, "r") as file:
+                    return file.read().split()
+            except Exception as e:
+                logging.error(f"加载名字数据集失败: {str(e)}")
+                # 提供一个最小的备用名字列表，确保程序不会崩溃
+                logging.warning("使用备用名字列表")
+                return ["Alex", "Sam", "Taylor", "Jordan", "Morgan", "Casey", "Riley", "Jamie", "Avery", "Quinn"]
 
     def generate_random_name(self):
         """生成随机用户名"""
