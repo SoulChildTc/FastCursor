@@ -382,7 +382,7 @@ class FastCursorGUI(QMainWindow):
         root_logger.addHandler(self.log_handler)
         
         # 初始日志消息
-        logging.info("Fast Cursor 助手已启动")
+        logging.info("FastCursor 助手已启动")
         logging.info("界面已初始化完成，等待操作...")
 
     def on_register_clicked(self):
