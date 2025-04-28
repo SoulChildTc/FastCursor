@@ -4,11 +4,11 @@ import os
 import logging
 from config import Config
 
-config = Config()
 
 
 class BrowserManager:
     def __init__(self):
+        self.config = Config()
         self.browser = None
 
     def init_browser(self, user_agent=None):
@@ -27,13 +27,13 @@ class BrowserManager:
         except FileNotFoundError as e:
             logging.warning(f"警告: {e}")
 
-        browser_path = config.browser_path
+        browser_path = self.config.browser_path
         if browser_path:
             co.set_paths(browser_path=browser_path)
 
         co.set_pref("credentials_enable_service", False)
         co.set_argument("--hide-crash-restore-bubble")
-        proxy = config.browser_proxy
+        proxy = self.config.browser_proxy
         if proxy:
             co.set_proxy(proxy)
 
@@ -42,7 +42,7 @@ class BrowserManager:
             co.set_user_agent(user_agent)
 
         co.headless(
-            config.browser_headless
+            self.config.browser_headless
         )  # 生产环境使用无头模式
 
         # Linux 系统特殊处理
