@@ -25,6 +25,11 @@ def sign_up_account(browser, tab, account, first_name, last_name, password, emai
     logging.info("=== 开始注册账号流程 ===")
     logging.info(f"正在访问注册页面: {sign_up_url}")
     tab.get(sign_up_url)
+    time.sleep(random.uniform(1, 3))
+    
+    # 处理人机验证和turnstile验证
+    handle_turnstile(tab, human_check=True)
+    tab.get(sign_up_url)
 
     try:
         if tab.ele("@name=first_name"):
@@ -43,7 +48,9 @@ def sign_up_account(browser, tab, account, first_name, last_name, password, emai
 
             logging.info("提交个人信息...")
             tab.actions.click("@type=submit")
-
+        else:
+            logging.error(f"注册页面访问失败: {str(e)}")
+            return False
     except Exception as e:
         logging.error(f"注册页面访问失败: {str(e)}")
         return False

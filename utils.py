@@ -44,9 +44,9 @@ def check_verification_success(tab) -> Optional[VerificationStatus]:
     return None
 
 
-def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2)) -> bool:
+def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2), human_check: bool = False) -> bool:
     """
-    处理 Turnstile 验证
+    处理 Turnstile 验证和"确认您是真人"复选框验证
 
     Args:
         tab: 浏览器标签页对象
@@ -59,9 +59,44 @@ def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2)) 
     Raises:
         TurnstileError: 验证过程中出现异常
     """
-    logging.info("正在检测 Turnstile 验证...")
+    logging.info("正在检测验证...")
     # save_screenshot(tab, "start")
 
+    # 先检查是否有"确认您是真人"复选框
+    if human_check:
+        challenge_check = None
+        try:
+            if tab.ele('text:是真人', timeout=3):
+                logging.info("检测到'确认您是真人'复选框，开始处理...")
+                save_screenshot(tab, "human_check")
+                
+                challenge_check = (
+                    tab.ele('text:是真人').next('tag:div')
+                    .child()
+                    .child()
+                    .shadow_root
+                    .ele("tag:iframe")
+                    .ele("tag:body")
+                    .shadow_root
+                    .ele('tag:input')
+                )
+            
+            if challenge_check:
+                logging.info("点击'确认您是真人'复选框...")
+                challenge_check.click()
+                time.sleep(random.uniform(1, 3))
+                save_screenshot(tab, "human_check_clicked")
+                logging.info("人机验证完成")
+                return True
+            else:
+                logging.info("未检测到'确认您是真人'复选框，跳过此步骤")
+                return True
+        except Exception as e:
+            logging.error(f"人机验证处理发生错误: {str(e)}")
+            return False
+    
+    # 处理 Turnstile 验证
+    logging.info("正在检测 Turnstile 验证...")
     retry_count = 0
 
     try:
@@ -86,7 +121,7 @@ def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2)) 
                     challenge_check.click()
                     time.sleep(2)
 
-                    保存验证后的截图
+                    # 保存验证后的截图
                     save_screenshot(tab, "clicked")
 
                     # 检查验证结果
